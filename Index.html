@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SilvaIA - Google Gemini Style</title>
+    <!-- Google Fonts & Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
+    <!-- Marked.js for Markdown -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- Highlight.js for Code Highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/tokyo-night-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+
+    <style>
+        :root {
+            --bg-color: #131314;
+            --sidebar-bg: #1e1e21;
+            --card-bg: #1e1f20;
+            --input-bg: #282a2c;
+            --text-main: #e3e2e6;
+            --text-sub: #c4c6d0;
+            --accent-blue: #a8c7fa;
+            --accent-gradient: linear-gradient(135deg, #4285f4, #9b51e0, #e91e63);
+            --border-color: #444746;
+            --user-msg-bg: #2b2c2e;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Google Sans', sans-serif; }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 20px;
+            background: var(--bg-color);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            z-index: 10;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .brand-logo {
+            font-size: 24px;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 700;
+        }
+
+        .model-selector {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            color: var(--accent-blue);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            outline: none;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .icon-btn {
+            background: none;
+            border: none;
+            color: var(--text-sub);
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: 0.2s;
+        }
+
+        .icon-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-main);
+        }
+
+        #chat-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            max-width: 900px;
+            width: 100%;
+            margin: 0 auto;
+            scroll-behavior: smooth;
+        }
+
+        .welcome-screen {
+            margin: auto;
+            text-align: center;
+            max-width: 600px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .welcome-screen h1 {
+            font-size: 2.2rem;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .welcome-screen p {
+            color: var(--text-sub);
+            font-size: 1rem;
+            line-height: 1.5;
+        }
+
+        .suggestion-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            width: 100%;
+            margin-top: 15px;
+        }
+
+        .suggestion-card {
+            background: var(--card-bg);
+            border: 1px solid rgba(255,255,255,0.05);
+            padding: 15px;
+            border-radius: 12px;
+            text-align: left;
+            cursor: pointer;
+            transition: 0.2s;
+            font-size: 0.88rem;
+            color: var(--text-sub);
+        }
+
+        .suggestion-card:hover {
+            background: var(--input-bg);
+            border-color: var(--accent-blue);
+            color: var(--text-main);
+        }
+
+        .message {
+            display: flex;
+            gap: 16px;
+            animation: fadeIn 0.3s ease-in-out;
+            word-break: break-word;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-weight: bold;
+        }
+
+        .avatar.user-avatar {
+            background: #3c4043;
+            color: #fff;
+        }
+
+        .avatar.bot-avatar {
+            background: var(--accent-gradient);
+            color: #fff;
+        }
+
+        .message-content {
+            flex: 1;
+            padding-top: 6px;
+            font-size: 0.98rem;
+            line-height: 1.6;
+        }
+
+        .message.user .message-content {
+            background: var(--user-msg-bg);
+            padding: 12px 18px;
+            border-radius: 18px;
+            border-top-right-radius: 4px;
+            max-width: 85%;
+            margin-left: auto;
+        }
+
+        .message.user {
+            flex-direction: row-reverse;
+        }
+
+        .message-content p { margin-bottom: 12px; }
+        .message-content p:last-child { margin-bottom: 0; }
+        .message-content ul, .message-content ol { margin-left: 20px; margin-bottom: 12px; }
+        .message-content pre {
+            background: #0d0e15;
+            border-radius: 8px;
+            padding: 14px;
+            overflow-x: auto;
+            margin: 12px 0;
+            border: 1px solid var(--border-color);
+            position: relative;
+        }
+        .message-content code {
+            font-family: 'Roboto Mono', monospace;
+            font-size: 0.88rem;
+        }
+
+        footer {
+            padding: 15px 20px;
+            max-width: 900px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        .input-box {
+            background: var(--input-bg);
+            border-radius: 28px;
+            padding: 8px 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border: 1px solid transparent;
+            transition: 0.2s;
+        }
+
+        .input-box:focus-within {
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 1px var(--accent-blue);
+        }
+
+        textarea {
+            flex: 1;
+            background: none;
+            border: none;
+            color: var(--text-main);
+            font-size: 1rem;
+            outline: none;
+            resize: none;
+            max-height: 150px;
+            height: 24px;
+            line-height: 24px;
+        }
+
+        textarea::placeholder { color: var(--text-sub); }
+
+        .send-btn {
+            background: var(--accent-blue);
+            color: #000;
+            border: none;
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: 0.2s;
+            flex-shrink: 0;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7);
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+
+        .modal-content {
+            background: var(--sidebar-bg);
+            padding: 24px;
+            border-radius: 16px;
+            max-width: 420px;
+            width: 90%;
+            border: 1px solid var(--border-color);
+        }
+
+        .modal-content h3 { margin-bottom: 12px; color: var(--accent-blue); }
+        .modal-content p { font-size: 0.88rem; color: var(--text-sub); margin-bottom: 16px; line-height: 1.4; }
+        .modal-content input {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-color);
+            color: #fff;
+            margin-bottom: 16px;
+            outline: none;
+        }
+
+        .modal-btn {
+            width: 100%;
+            padding: 12px;
+            background: var(--accent-blue);
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            color: #000;
+        }
+
+        .typing-indicator {
+            display: flex;
+            gap: 4px;
+            padding: 10px 0;
+        }
+        .dot {
+            width: 8px; height: 8px;
+            background: var(--accent-blue);
+            border-radius: 50%;
+            animation: bounce 1.4s infinite ease-in-out both;
+        }
+        .dot:nth-child(1) { animation-delay: -0.32s; }
+        .dot:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1.0); }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="brand">
+            <span class="brand-logo">SilvaIA</span>
+            <select id="engineSelector" class="model-selector" onchange="toggleEngine()">
+                <option value="gemini">Gemini 1.5 Flash (Online)</option>
+                <option value="local">SilvaIA Local (Offline)</option>
+            </select>
+        </div>
+        <div class="header-actions">
+            <button class="icon-btn" onclick="openKeyModal()" title="Configurar API Key">
+                <span class="material-symbols-outlined">key</span>
+            </button>
+            <button class="icon-btn" onclick="clearChat()" title="Limpar Conversa">
+                <span class="material-symbols-outlined">delete</span>
+            </button>
+        </div>
+    </header>
+
+    <div id="chat-container">
+        <div class="welcome-screen" id="welcomeScreen">
+            <h1>Olá, sou a SilvaIA</h1>
+            <p>Sua inteligência artificial otimizada. Como posso ajudar você hoje?</p>
+            <div class="suggestion-grid">
+                <div class="suggestion-card" onclick="useSuggestion('Crie um código Python para automação')">
+                    💻 <b>Criar Código</b><br>Automações e Scripts
+                </div>
+                <div class="suggestion-card" onclick="useSuggestion('Explique o que é inteligência artificial em termos simples')">
+                    ⚡ <b>Explicar Conceito</b><br>Entendimento Rápido
+                </div>
+                <div class="suggestion-card" onclick="useSuggestion('Monte um roteiro de estudos de tecnologia')">
+                    📚 <b>Plano de Estudos</b><br>Organização & Metas
+                </div>
+                <div class="suggestion-card" onclick="useSuggestion('Escreva uma mensagem profissional para meu perfil')">
+                    📝 <b>Redação & Texto</b><br>Conteúdo Otimizado
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <div class="input-box">
+            <textarea id="userInput" placeholder="Pergunte à SilvaIA..." rows="1" onkeydown="handleKey(event)"></textarea>
+            <button class="send-btn" id="sendBtn" onclick="sendMessage()">
+                <span class="material-symbols-outlined">send</span>
+            </button>
+        </div>
+    </footer>
+
+    <div class="modal" id="keyModal">
+        <div class="modal-content">
+            <h3>Configurar Key do Google Gemini</h3>
+            <p>Insira sua API Key gratuita do Google AI Studio. O código fica salvo apenas no navegador do seu celular.</p>
+            <input type="password" id="apiKeyInput" placeholder="Cole sua API Key (AIzaSy...)">
+            <button class="modal-btn" onclick="saveApiKey()">Salvar Chave</button>
+        </div>
+    </div>
+
+    <script>
+        marked.setOptions({
+            highlight: function(code, lang) {
+                if (typeof hljs !== 'undefined') {
+                    return hljs.highlightAuto(code).value;
+                }
+                return code;
+            },
+            breaks: true
+        });
+
+        let apiKey = localStorage.getItem('silva_gemini_key') || '';
+        let currentEngine = localStorage.getItem('silva_engine') || 'gemini';
+
+        document.getElementById('engineSelector').value = currentEngine;
+
+        function toggleEngine() {
+            currentEngine = document.getElementById('engineSelector').value;
+            localStorage.setItem('silva_engine', currentEngine);
+            if(currentEngine === 'gemini' && !apiKey) {
+                openKeyModal();
+            }
+        }
+
+        function openKeyModal() {
+            document.getElementById('apiKeyInput').value = apiKey;
+            document.getElementById('keyModal').style.display = 'flex';
+        }
+
+        function saveApiKey() {
+            apiKey = document.getElementById('apiKeyInput').value.trim();
+            localStorage.setItem('silva_gemini_key', apiKey);
+            document.getElementById('keyModal').style.display = 'none';
+        }
+
+        function handleKey(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+            e.target.style.height = 'auto';
+            e.target.style.height = (e.target.scrollHeight - 16) + 'px';
+        }
+
+        function useSuggestion(text) {
+            document.getElementById('userInput').value = text;
+            sendMessage();
+        }
+
+        function clearChat() {
+            document.getElementById('chat-container').innerHTML = `
+                <div class="welcome-screen" id="welcomeScreen">
+                    <h1>Olá, sou a SilvaIA</h1>
+                    <p>Sua inteligência artificial otimizada. Como posso ajudar você hoje?</p>
+                </div>
+            `;
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('userInput');
+            const prompt = input.value.trim();
+            if (!prompt) return;
+
+            const welcomeScreen = document.getElementById('welcomeScreen');
+            if (welcomeScreen) welcomeScreen.remove();
+
+            appendMessage(prompt, 'user');
+            input.value = '';
+            input.style.height = '24px';
+
+            const botMsgId = appendLoadingBubble();
+
+            if (currentEngine === 'gemini') {
+                if (!apiKey) {
+                    updateBotBubble(botMsgId, "⚠️ **API Key não encontrada!**\n\nClique no ícone de chave 🔑 no canto superior direito e cole sua chave gratuita do Google AI Studio.");
+                    openKeyModal();
+                    return;
+                }
+                await fetchGeminiResponse(prompt, botMsgId);
+            } else {
+                await fetchLocalResponse(prompt, botMsgId);
+            }
+        }
+
+        function appendMessage(text, sender) {
+            const container = document.getElementById('chat-container');
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `message ${sender}`;
+            
+            const avatarHtml = sender === 'user' 
+                ? '<div class="avatar user-avatar"><span class="material-symbols-outlined">person</span></div>'
+                : '<div class="avatar bot-avatar"><span class="material-symbols-outlined">auto_awesome</span></div>';
+
+            const contentHtml = sender === 'user'
+                ? `<div class="message-content">${escapeHtml(text)}</div>`
+                : `<div class="message-content">${marked.parse(text)}</div>`;
+
+            msgDiv.innerHTML = avatarHtml + contentHtml;
+            container.appendChild(msgDiv);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function appendLoadingBubble() {
+            const container = document.getElementById('chat-container');
+            const msgDiv = document.createElement('div');
+            const msgId = 'bot-msg-' + Date.now();
+            msgDiv.className = 'message bot';
+            msgDiv.id = msgId;
+
+            msgDiv.innerHTML = `
+                <div class="avatar bot-avatar"><span class="material-symbols-outlined">auto_awesome</span></div>
+                <div class="message-content">
+                    <div class="typing-indicator">
+                        <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+                    </div>
+                </div>
+            `;
+            container.appendChild(msgDiv);
+            container.scrollTop = container.scrollHeight;
+            return msgId;
+        }
+
+        function updateBotBubble(msgId, markdownText) {
+            const msgDiv = document.getElementById(msgId);
+            if (!msgDiv) return;
+            const contentDiv = msgDiv.querySelector('.message-content');
+            contentDiv.innerHTML = marked.parse(markdownText);
+            
+            if (typeof hljs !== 'undefined') {
+                contentDiv.querySelectorAll('pre code').forEach((block) => {
+                    hljs.highlightElement(block);
+                });
+            }
+            document.getElementById('chat-container').scrollTop = document.getElementById('chat-container').scrollHeight;
+        }
+
+        async function fetchGeminiResponse(prompt, msgId) {
+            try {
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        system_instruction: {
+                            parts: [{ text: "Você é a SilvaIA, uma inteligência artificial hiper-tecnológica, otimizada, precisa e eficiente. Responda em Português do Brasil com formatação Markdown impecável, estilo Google Gemini." }]
+                        },
+                        contents: [{ parts: [{ text: prompt }] }]
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.candidates && data.candidates[0].content && data.candidates[0].content.parts[0].text) {
+                    const text = data.candidates[0].content.parts[0].text;
+                    updateBotBubble(msgId, text);
+                } else if (data.error) {
+                    updateBotBubble(msgId, `❌ **Erro na API do Google:** ${data.error.message}\n\n*Verifique se sua API Key está correta ou gere uma nova no Google AI Studio.*`);
+                } else {
+                    updateBotBubble(msgId, "❌ Resposta não compreendida da API. Tente novamente.");
+                }
+            } catch (err) {
+                updateBotBubble(msgId, `❌ **Erro de Conexão:** Não foi possível conectar à API. Verifique sua conexão com a internet ou a chave informada.`);
+            }
+        }
+
+        async function fetchLocalResponse(prompt, msgId) {
+            setTimeout(() => {
+                const lower = prompt.toLowerCase();
+                let reply = "";
+
+                if (lower.includes("olá") || lower.includes("oi") || lower
